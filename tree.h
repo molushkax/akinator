@@ -12,6 +12,10 @@
 
 #define NO_COLOR "\033[0m"
 #define RED      "\033[1;31m"
+#define YELLOW   "\033[1;33m"
+#define BLUE     "\033[1;34m"
+#define PURPLE   "\033[35m"
+#define GREEN    "\033[1;32m"
 
 struct leaf_t {
     const char* text;
@@ -42,9 +46,12 @@ leaf_t* read_data_from_file   (FILE* in);
 int skip_spaces               (FILE* in);
 size_t tree_size              (const leaf_t* leaf);
 tree_error_t start_game       (tree_t* tree);
-void print_tree               (leaf_t* leaf, FILE* out);
+void print_tree               (leaf_t* leaf, FILE* out, int* rank);
+void update_base              (leaf_t* leaf, FILE* out);
 void print_tree_error_context (tree_t* tree, const char* func, int line);
 void cool_print               (const char* out_text, int delay);
+void dump_node                (const leaf_t* leaf, FILE* out, size_t* id);
+void dump_tree                (const tree_t* tree, const char* filename);
 
 //TODO destroy
 #define TREE_ASSERT(list) do {                                                     \

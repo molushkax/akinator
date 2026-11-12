@@ -14,12 +14,15 @@ int main () {
         init_first_question (&tree);
     }
 
-    FILE* check_out = fopen ("check_out.txt", "w");
-    print_tree (tree.root, check_out);
-
     if (in != NULL) fclose (in);
-    fclose (check_out);
     start_game (&tree);
+
+    FILE* check_out = fopen ("check_out.txt", "w");
+    int rank = 0;
+    print_tree (tree.root, check_out, &rank);
+    fclose (check_out);
+
+    dump_tree  (&tree, "akinator.dot");
 
     return 0;
 }

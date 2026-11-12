@@ -39,7 +39,7 @@ void init_first_question (tree_t* tree) {
     return;
 }
 
-leaf_t* read_data_from_file (FILE* in) {
+leaf_t* read_data_from_file (FILE* in) { //TODO через буфер чтобы ангетц не было, обработка ошибок нужна
     assert (in != NULL);
 
     if (skip_spaces (in) != '(') return NULL;
@@ -90,10 +90,12 @@ tree_error_t start_game (tree_t* tree) {
     TREE_ASSERT (tree);
 
     tree->current_leaf = tree->root;
+    cool_print (PURPLE "Hello, my dear user. \nLet's play with my akinator\n", NORM_TEMP);
 
     char answer[4] = {};
     while ((tree->current_leaf)->positive != NULL) {
-        printf ("\n%s?\n", (tree->current_leaf)->text);
+        cool_print ("\nEto ", DED_TEMP);
+        printf ("%s?\n", (tree->current_leaf)->text);
         scanf ("%s", answer);
         if (strcmp (answer, "yes") == 0) tree->current_leaf = (tree->current_leaf)->positive;
         else tree->current_leaf = (tree->current_leaf)->negative;
@@ -101,19 +103,20 @@ tree_error_t start_game (tree_t* tree) {
 
     char expected_answer[24] = {};
     if (strcmp (answer, "yes") == 0) {
-        cool_print ("This is ", NORM_TEMP);
-        printf ("%s\n", ((tree->current_leaf)->text));
+        cool_print (YELLOW"\nThis is ", NORM_TEMP);
+        printf ("%s\n" NO_COLOR, ((tree->current_leaf)->text));
         strcpy (expected_answer, ((tree->current_leaf)->text));
     }
     else {
-        printf ("This is %s\n", ((tree->current_leaf)->text));
+        cool_print (YELLOW"\nThis is ", NORM_TEMP);
+        printf ("%s\n" NO_COLOR, ((tree->current_leaf)->text));
         strcpy (expected_answer, ((tree->current_leaf)->text));
     }
-    cool_print ("Is this answer correct?\n", NORM_TEMP);
+    cool_print (PURPLE "Is this answer correct?\n", NORM_TEMP);
 
     char check_answer[4] = {};
     scanf ("%s", check_answer);
-    if (strcmp (check_answer, "yes") == 0) cool_print ("I'm happy that it's true, thank you for using me\n", NORM_TEMP);
+    if (strcmp (check_answer, "yes") == 0) cool_print ("I'm happy that it's true, thank you for using me\n" NO_COLOR, NORM_TEMP);
     else {
         cool_print ("What did you actually wish for?\n", NORM_TEMP);
         char real_answer[24] = {};
@@ -123,23 +126,52 @@ tree_error_t start_game (tree_t* tree) {
         printf ("%s", real_answer);
         cool_print (" different from ", NORM_TEMP);
         printf ("%s?\n", expected_answer);
-        cool_print ("It's ... ", NORM_TEMP);
-        scanf ("%s", particularity);
+        cool_print ("She/He/It is ... ", NORM_TEMP);
+        scanf ("%s" NO_COLOR, particularity);
+
         create_children (tree->current_leaf);
         (tree->current_leaf)->text = particularity;
         ((tree->current_leaf)->positive)->text = real_answer;
         ((tree->current_leaf)->negative)->text = expected_answer;
+
         FILE* out = fopen ("tree_data.txt", "w");
-        print_tree (tree->root, out);
+        update_base (tree->root, out);
     }
 
     return TREE_OK;
 }
 
-void print_tree (leaf_t* leaf, FILE* out) {
+void print_tree (leaf_t* leaf, FILE* out, int* rank) {
+    if (leaf) {
+        fprintf (out, "\n");
+        for (int i = 0; i < *rank; i ++) {
+            fprintf (out, "    ");
+        }
+        fprintf (out, "( %s ", leaf->text);
+    }
+
+    else fprintf (out, "( %s ", leaf->text);
+    (*rank)++;
+
+    if (leaf->positive) print_tree (leaf->positive, out, rank);
+    if (leaf->negative) print_tree (leaf->negative, out, rank);
+    (*rank)--;
+
+    if (leaf->positive) {
+        fprintf (out, "\n");
+            for (int i = 0; i < *rank; i ++) {
+                fprintf (out, "    ");
+            }
+        fprintf (out, ")");
+    }
+
+    else fprintf (out, ")");
+}
+
+void update_base (leaf_t* leaf, FILE* out) {
     fprintf (out, "( %s ", leaf->text);
-    if (leaf->positive) print_tree (leaf->positive, out);
-    if (leaf->negative) print_tree (leaf->negative, out);
+    if (leaf->positive) update_base (leaf->positive, out);
+    if (leaf->negative) update_base (leaf->negative, out);
     fprintf (out, " )");
 }
 
@@ -186,4 +218,39 @@ void cool_print (const char* out_text, int delay) {
         fflush (stdout);
         Sleep (delay);
     }
+}
+
+void dump_node (const leaf_t* leaf, FILE* out, size_t* id) {
+    if (leaf == NULL) return;
+
+    size_t my_id = (*id)++;
+    fprintf (out, "    n%zu [label=\"%s\"];\n", my_id, leaf->text);
+
+    if (leaf->positive) {
+        size_t pos_child_id = *id;
+        fprintf (out, "    n%zu -> n%zu [label=\"yes\"];\n", my_id, pos_child_id);
+        dump_node (leaf->positive, out, id);
+    }
+
+    if (leaf->negative) {
+        size_t neg_child_id = *id;
+        fprintf (out, "    n%zu -> n%zu [label=\"no\"];\n", my_id, neg_child_id);
+        dump_node (leaf->negative, out, id);
+    }
+}
+
+void dump_tree (const tree_t* tree, const char* filename) {
+    if (tree == NULL || tree->root == NULL) return;
+
+    FILE* out = fopen (filename, "w");
+    if (out == NULL) return;
+
+    fprintf (out, "digraph Tree {\n");
+    fprintf (out, "    node [shape=box, fontsize=12];\n");
+    fprintf (out, "    graph [overlap=false, splines=true];");
+    size_t id = 0;
+    dump_node (tree->root, out, &id);
+
+    fprintf (out, "}\n");
+    fclose (out);
 }
