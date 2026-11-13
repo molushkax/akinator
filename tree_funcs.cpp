@@ -39,20 +39,44 @@ void init_first_question (tree_t* tree) {
     return;
 }
 
-leaf_t* read_data_from_file (FILE* in) { //TODO через буфер чтобы ангетц не было, обработка ошибок нужна
+leaf_t* read_data_from_file (FILE* in) {
     assert (in != NULL);
 
-    if (skip_spaces (in) != '(') return NULL;
-    fgetc (in);
+    fseek (in, 0, SEEK_END);
+    size_t file_size = ftell (in);
+    fseek (in, 0, SEEK_SET);
+
+    char* file_info = (char*)calloc (file_size + 1, sizeof (char));
+    if (file_info == NULL) return NULL;
+
+    size_t read_bytes = fread (file_info, 1, file_size, in);
+    file_info[read_bytes] = '\0';
+
+    buffer buf = { .data = file_info, .position = 0};
+
+    leaf_t* root = read_data_from_buffer (&buf);
+
+    free (file_info);
+
+    return root;
+}
+
+leaf_t* read_data_from_buffer (buffer* buf) {
+    assert (buf != NULL);
+
+    if (skip_spaces_in_buffer (buf) != '(') return NULL;
+    get_char_from_buffer (buf);
 
     char text[128] = {};
-    if (fscanf(in, "%127s", text) != 1) return NULL;
+    buffer_read_word (buf, text, sizeof (text));
 
     size_t len = strlen (text);
-    if (len > 0 && (text[len - 1] == '(' || text[len - 1] == ')')) {
+    if (len == 0) return NULL;
+
+    if (text[len - 1] == '(' || text[len - 1] == ')') {
         char bracket = text[len - 1];
         text[len - 1] = '\0';
-        ungetc (bracket, in);
+        return_back_in_buffer (bracket, buf);
 
         if (len == 1) return NULL;
     }
@@ -61,10 +85,10 @@ leaf_t* read_data_from_file (FILE* in) { //TODO через буфер чтобы
     if (leaf == NULL) return NULL;
 
     leaf->text = strdup (text);
-    leaf->positive = read_data_from_file (in);
-    leaf->negative = read_data_from_file (in);
+    leaf->positive = read_data_from_buffer (buf);
+    leaf->negative = read_data_from_buffer (buf);
 
-    if (skip_spaces (in) == ')') fgetc (in);
+    if (skip_spaces_in_buffer (buf) == ')') get_char_from_buffer (buf);
 
     if (leaf->positive) (leaf->positive)->parent = leaf;
     if (leaf->negative) (leaf->negative)->parent = leaf;
@@ -72,12 +96,52 @@ leaf_t* read_data_from_file (FILE* in) { //TODO через буфер чтобы
     return leaf;
 }
 
-int skip_spaces (FILE* in) {
-    assert (in != NULL);
+void buffer_read_word (buffer* buf, char* text, size_t max_len) {
+    assert (buf != NULL);
+    assert (text != NULL);
+
+    size_t i = 0;
+    int c = 0;
+
+    while ((c = get_char_from_buffer (buf)) != EOF && isspace (c)) {}
+    if (c == EOF) {
+        text[0] = '\0';
+        return;
+    }
+
+    while (c != EOF && !isspace(c) && c != ')' && c != '(') {
+        if (i < max_len - 1) {
+            text[i++] = (char)c;
+        }
+        c = get_char_from_buffer (buf);
+    }
+
+    text[i] = '\0';
+
+    if (c != EOF) return_back_in_buffer (c, buf);
+}
+
+int get_char_from_buffer (buffer* buf) {
+    assert (buf != NULL);
+
+    if (buf->data[buf->position] == '\0') return EOF;
+
+    return buf->data[buf->position++];
+}
+
+void return_back_in_buffer (int c, buffer* buf) {
+    assert (buf != NULL);
+
+    if (c != EOF && buf->position > 0) buf->position--;
+}
+
+int skip_spaces_in_buffer (buffer* buf) {
+    assert (buf != NULL);
 
     int c = 0;
-    while ((c = fgetc (in)) != EOF && isspace (c)) {}
-    if (c != EOF) ungetc (c, in);
+    while ((c = get_char_from_buffer (buf)) != EOF && isspace (c)) {}
+    if (c != EOF) return_back_in_buffer (c, buf);
+
     return c;
 }
 
@@ -224,17 +288,17 @@ void dump_node (const leaf_t* leaf, FILE* out, size_t* id) {
     if (leaf == NULL) return;
 
     size_t my_id = (*id)++;
-    fprintf (out, "    n%zu [label=\"%s\"];\n", my_id, leaf->text);
+    fprintf (out, "    n%zu [label=\"%s\", color=\"#3c84a7\"];\n", my_id, leaf->text);
 
     if (leaf->positive) {
         size_t pos_child_id = *id;
-        fprintf (out, "    n%zu -> n%zu [label=\"yes\"];\n", my_id, pos_child_id);
+        fprintf (out, "    n%zu -> n%zu [label=\"yes\", color=\"#24e216\"];\n", my_id, pos_child_id);
         dump_node (leaf->positive, out, id);
     }
 
     if (leaf->negative) {
         size_t neg_child_id = *id;
-        fprintf (out, "    n%zu -> n%zu [label=\"no\"];\n", my_id, neg_child_id);
+        fprintf (out, "    n%zu -> n%zu [label=\"no\", color=\"#D32F2F\"];\n", my_id, neg_child_id);
         dump_node (leaf->negative, out, id);
     }
 }

@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <windows.h>
 #include <string.h>
+#include <ctype.h>
 #include <stdint.h>
 
 #define NO_COLOR "\033[0m"
@@ -30,6 +31,11 @@ struct tree_t {
     size_t  size_of_tree; //TODO глубина хз
 };
 
+struct buffer {
+    const char* data;
+    size_t position;
+};
+
 enum tree_error_t {
     TREE_OK = 0,
     TREE_ERROR_WITH_ALLOCATION = 1
@@ -43,7 +49,11 @@ leaf_t* create_leaf           (leaf_t* leaf);
 void create_children          (leaf_t* leaf);
 void init_first_question      (tree_t* tree);
 leaf_t* read_data_from_file   (FILE* in);
-int skip_spaces               (FILE* in);
+leaf_t* read_data_from_buffer (buffer* buf);
+void buffer_read_word         (buffer* buf, char* text, size_t max_len);
+int get_char_from_buffer      (buffer* buf);
+void return_back_in_buffer    (int c, buffer* buf);
+int skip_spaces_in_buffer     (buffer* buf);
 size_t tree_size              (const leaf_t* leaf);
 tree_error_t start_game       (tree_t* tree);
 void print_tree               (leaf_t* leaf, FILE* out, int* rank);
