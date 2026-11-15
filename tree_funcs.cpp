@@ -318,3 +318,112 @@ void dump_tree (const tree_t* tree, const char* filename) {
     fprintf (out, "}\n");
     fclose (out);
 }
+
+char* get_buffer_with_info_from_file (FILE* in) {
+    assert (in != NULL);
+
+    fseek (in, 0, SEEK_END);
+    size_t file_size = ftell (in);
+    fseek (in, 0, SEEK_SET);
+
+    char* file_info = (char*)calloc (file_size + 1, sizeof (char));
+    if (file_info == NULL) return NULL;
+
+    size_t read_bytes = fread (file_info, 1, file_size, in);
+    file_info[read_bytes] = '\0';
+
+    return file_info;
+}
+
+void start_definition (FILE* tree_data) {
+    assert (tree_data != NULL);
+
+    char word_to_define[64] = {};
+    if (scanf ("%63s", word_to_define) != 1) return;
+
+    char* buffer_for_def = get_buffer_with_info_from_file (tree_data);
+    if (buffer_for_def == NULL) return; //TODO errors
+
+    buffer buf = { .data = buffer_for_def, .position = 0 };
+    leaf_t* root = read_data_from_buffer (&buf);
+    if (root == NULL) {
+        free (buffer_for_def);
+        return;
+    }
+
+    leaf_t* target = find_character (root, word_to_define);
+    if (target == NULL) {
+        cool_print (RED "Not found in base: " NO_COLOR, NORM_TEMP);
+        printf ("%s\n", word_to_define);
+    }
+
+    else {
+        print_character_features (target, word_to_define);
+    }
+
+    free (buffer_for_def);
+    destroy_tree (root);
+}
+
+leaf_t* find_character (leaf_t* leaf, const char* name) {
+    if (leaf == NULL) return NULL;
+
+    if (leaf->positive == NULL && leaf->negative == NULL) {
+        if (strcmp (leaf->text, name) == 0) return leaf;
+
+        else return NULL;
+    }
+
+    leaf_t* found = find_character (leaf->positive, name);
+    if (found != NULL) return found;
+
+    found = find_character (leaf->negative, name);
+    if (found != NULL) return found;
+
+    return NULL;
+}
+
+void print_character_features (leaf_t* target, const char* name) {
+    assert (target != NULL);
+    assert (name   != NULL);
+
+    char* path[64] = {};
+    int count = 0;
+
+    leaf_t* current = target;
+    while (current->parent != NULL && current->parent != current) {
+        leaf_t* parent = current->parent;
+        int is_yes = (parent->positive == current);
+
+        size_t len = strlen (parent->text) + 10;
+        path[count] = (char*)calloc (len, sizeof (char));
+
+        if (path[count] == NULL) break;
+        if (is_yes == 1) {
+            snprintf (path[count], len, "%s", parent->text);
+        }
+
+        else snprintf (path[count], len, "not %s", parent->text);
+
+        count++;
+
+        current = parent;
+    }
+
+    cool_print (YELLOW "\nDefinition:\n" NO_COLOR, NORM_TEMP);
+    printf ("%s:\n" NO_COLOR, name);
+
+    for (int i = count - 1; i >= 0; i--) {
+        printf (" - %s\n", path[i]);
+        free (path[i]);
+    }
+}
+
+void destroy_tree (leaf_t* leaf) {
+    if (leaf == NULL) return;
+
+    destroy_tree (leaf->positive);
+    destroy_tree (leaf->negative);
+    free ((void*)leaf->text);
+    free (leaf);
+}

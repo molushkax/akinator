@@ -56,13 +56,17 @@ void return_back_in_buffer    (int c, buffer* buf);
 int skip_spaces_in_buffer     (buffer* buf);
 size_t tree_size              (const leaf_t* leaf);
 tree_error_t start_game       (tree_t* tree);
+char* get_buffer_with_info_from_file (FILE* in);
 void print_tree               (leaf_t* leaf, FILE* out, int* rank);
 void update_base              (leaf_t* leaf, FILE* out);
 void print_tree_error_context (tree_t* tree, const char* func, int line);
 void cool_print               (const char* out_text, int delay);
 void dump_node                (const leaf_t* leaf, FILE* out, size_t* id);
 void dump_tree                (const tree_t* tree, const char* filename);
-
+void start_definition         (FILE* tree_data);
+leaf_t* find_character        (leaf_t* leaf, const char* name);
+void print_character_features (leaf_t* target, const char* name);
+void destroy_tree             (leaf_t* leaf);
 //TODO destroy
 #define TREE_ASSERT(list) do {                                                     \
     int _n = tree_verify (tree, __FUNCTION__, __LINE__);                           \
