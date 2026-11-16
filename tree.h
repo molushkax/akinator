@@ -6,17 +6,17 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdbool.h>
-#include <windows.h>
 #include <string.h>
 #include <ctype.h>
 #include <stdint.h>
+#include "raylib.h"
 
-#define NO_COLOR "\033[0m"
-#define RED      "\033[1;31m"
-#define YELLOW   "\033[1;33m"
-#define BLUE     "\033[1;34m"
-#define PURPLE   "\033[35m"
-#define GREEN    "\033[1;32m"
+#define NO_COLOR    "\033[0m"
+#define MY_RED      "\033[1;31m"
+#define MY_YELLOW   "\033[1;33m"
+#define MY_BLUE     "\033[1;34m"
+#define MY_PURPLE   "\033[35m"
+#define MY_GREEN    "\033[1;32m"
 
 struct leaf_t {
     const char* text;
@@ -67,11 +67,14 @@ void start_definition         (FILE* tree_data);
 leaf_t* find_character        (leaf_t* leaf, const char* name);
 void print_character_features (leaf_t* target, const char* name);
 void destroy_tree             (leaf_t* leaf);
+char choose_mode              (void);
+void start_game_in_terminal   (void);
+void start_definition         (void);
 //TODO destroy
 #define TREE_ASSERT(list) do {                                                     \
     int _n = tree_verify (tree, __FUNCTION__, __LINE__);                           \
     if (_n != 0) {                                                                 \
-        fprintf (stderr, RED "LIST_ASSERT failed (%d errors) at %s:%d\n" NO_COLOR, \
+        fprintf (stderr, MY_RED "LIST_ASSERT failed (%d errors) at %s:%d\n" NO_COLOR, \
                 _n, __FILE__, __LINE__);                                           \
         abort();                                                                   \
     }                                                                              \

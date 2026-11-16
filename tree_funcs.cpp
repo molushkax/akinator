@@ -154,12 +154,12 @@ tree_error_t start_game (tree_t* tree) {
     TREE_ASSERT (tree);
 
     tree->current_leaf = tree->root;
-    cool_print (PURPLE "Hello, my dear user. \nLet's play with my akinator\n", NORM_TEMP);
+    cool_print (MY_PURPLE "Hello, my dear user. \nLet's play with my akinator\n" NO_COLOR, NORM_TEMP);
 
     char answer[4] = {};
     while ((tree->current_leaf)->positive != NULL) {
-        cool_print ("\nEto ", DED_TEMP);
-        printf ("%s?\n", (tree->current_leaf)->text);
+        cool_print (MY_PURPLE "\nEto ", DED_TEMP);
+        printf ("%s?\n" NO_COLOR, (tree->current_leaf)->text);
         scanf ("%s", answer);
         if (strcmp (answer, "yes") == 0) tree->current_leaf = (tree->current_leaf)->positive;
         else tree->current_leaf = (tree->current_leaf)->negative;
@@ -167,30 +167,30 @@ tree_error_t start_game (tree_t* tree) {
 
     char expected_answer[24] = {};
     if (strcmp (answer, "yes") == 0) {
-        cool_print (YELLOW"\nThis is ", NORM_TEMP);
-        printf ("%s\n" NO_COLOR, ((tree->current_leaf)->text));
+        cool_print (MY_YELLOW"\nThis is ", NORM_TEMP);
+        printf ("%s\n\n" NO_COLOR, ((tree->current_leaf)->text));
         strcpy (expected_answer, ((tree->current_leaf)->text));
     }
     else {
-        cool_print (YELLOW"\nThis is ", NORM_TEMP);
-        printf ("%s\n" NO_COLOR, ((tree->current_leaf)->text));
+        cool_print (MY_YELLOW"\nThis is ", NORM_TEMP);
+        printf ("%s\n\n" NO_COLOR, ((tree->current_leaf)->text));
         strcpy (expected_answer, ((tree->current_leaf)->text));
     }
-    cool_print (PURPLE "Is this answer correct?\n", NORM_TEMP);
+    cool_print (MY_PURPLE "Is this answer correct?\n" NO_COLOR, NORM_TEMP);
 
     char check_answer[4] = {};
     scanf ("%s", check_answer);
-    if (strcmp (check_answer, "yes") == 0) cool_print ("I'm happy that it's true, thank you for using me\n" NO_COLOR, NORM_TEMP);
+    if (strcmp (check_answer, "yes") == 0) cool_print (MY_PURPLE "I'm happy that it's true, thank you for using me\n" NO_COLOR, NORM_TEMP);
     else {
-        cool_print ("What did you actually wish for?\n", NORM_TEMP);
+        cool_print (MY_PURPLE "What did you actually wish for?\n" NO_COLOR, NORM_TEMP);
         char real_answer[24] = {};
         scanf ("%s", real_answer);
         char particularity[24] = {};
-        cool_print ("And how is ", NORM_TEMP);
+        cool_print (MY_PURPLE "And how is ", NORM_TEMP);
         printf ("%s", real_answer);
         cool_print (" different from ", NORM_TEMP);
-        printf ("%s?\n", expected_answer);
-        cool_print ("She/He/It is ... ", NORM_TEMP);
+        printf ("%s?\n" NO_COLOR, expected_answer);
+        cool_print (MY_PURPLE "She/He/It is ... ", NORM_TEMP);
         scanf ("%s" NO_COLOR, particularity);
 
         create_children (tree->current_leaf);
@@ -245,7 +245,7 @@ int tree_verify (tree_t* tree, const char* function_name, int line) {
 
     if (tree->size_of_tree < 1) {
         print_tree_error_context (tree, function_name, line);
-        fprintf(stderr, RED "ERROR: size of tree is less than 1, it's abnormal\n" NO_COLOR);
+        fprintf(stderr, MY_RED "ERROR: size of tree is less than 1, it's abnormal\n" NO_COLOR);
         n++;
     }
 
@@ -280,7 +280,7 @@ void cool_print (const char* out_text, int delay) {
     for (unsigned int i = 0;  i < strlen (out_text); i++) {
         putchar (out_text [i]);
         fflush (stdout);
-        Sleep (delay);
+        usleep (delay * 1000);
     }
 }
 
@@ -353,7 +353,7 @@ void start_definition (FILE* tree_data) {
 
     leaf_t* target = find_character (root, word_to_define);
     if (target == NULL) {
-        cool_print (RED "Not found in base: " NO_COLOR, NORM_TEMP);
+        cool_print (MY_RED "Not found in base: " NO_COLOR, NORM_TEMP);
         printf ("%s\n", word_to_define);
     }
 
@@ -410,7 +410,7 @@ void print_character_features (leaf_t* target, const char* name) {
         current = parent;
     }
 
-    cool_print (YELLOW "\nDefinition:\n" NO_COLOR, NORM_TEMP);
+    cool_print (MY_YELLOW "\nDefinition:\n" NO_COLOR, NORM_TEMP);
     printf ("%s:\n" NO_COLOR, name);
 
     for (int i = count - 1; i >= 0; i--) {
@@ -426,4 +426,57 @@ void destroy_tree (leaf_t* leaf) {
     destroy_tree (leaf->negative);
     free ((void*)leaf->text);
     free (leaf);
+}
+
+char choose_mode (void) {
+    char chosen_mode = 'm';
+
+    cool_print (MY_YELLOW "Choose mode of work:\n" NO_COLOR
+            " - play in terminal with opportunity\n"
+            "   to update base" MY_YELLOW " (t)\n" NO_COLOR
+            " - play in raylib graphic window" MY_YELLOW " (r)\n" NO_COLOR
+            " - find out the definition of word in base" MY_YELLOW " (d)\n" NO_COLOR, NORM_TEMP);
+    cool_print (MY_YELLOW "Make your choice: " NO_COLOR, NORM_TEMP);
+
+    if (scanf ("%c", &chosen_mode) == 1) {
+        printf ("\n");
+        return chosen_mode;
+    }
+
+    return 'e';
+}
+
+void start_game_in_terminal (void) {
+    tree_t tree = {};
+
+    FILE* in = fopen ("tree_data.txt", "r");
+    if (in != NULL) {
+        tree.root = read_data_from_file (in);
+        tree.size_of_tree = tree_size (tree.root);
+        fclose (in);
+    }
+
+    else {
+        tree_ctor (&tree, "chelovek");
+        init_first_question (&tree);
+    }
+
+    start_game (&tree);
+
+    FILE* check_out = fopen ("check_out.txt", "w");
+    int rank = 0;
+    print_tree (tree.root, check_out, &rank);
+    fclose (check_out);
+
+    dump_tree  (&tree, "akinator.dot");
+    destroy_tree (tree.root);
+}
+
+void start_definition (void) {
+    FILE* def_in = fopen ("tree_data.txt", "r");
+    if (def_in != NULL) {
+        cool_print (MY_PURPLE "Of what word do you want to get definition?\n" NO_COLOR, NORM_TEMP);
+        start_definition (def_in);
+        fclose (def_in);
+    }
 }
