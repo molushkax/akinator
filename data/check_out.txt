@@ -12,7 +12,16 @@
             )
             ( moggaet 
                 ( sigma 
-                    ( nastya )
+                    ( mentor 
+                        ( nyneshniy 
+                            ( kolya )
+                            ( general 
+                                ( vanya )
+                                ( zarina )
+                            )
+                        )
+                        ( nastya )
+                    )
                     ( anya )
                 )
                 ( meee )
@@ -35,7 +44,10 @@
                 )
                 ( pinacolada )
             )
-            ( poltorashka )
+            ( electronnoe 
+                ( notebook )
+                ( poltorashka )
+            )
         )
     )
 )
