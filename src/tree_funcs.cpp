@@ -524,11 +524,14 @@ void comparison (char** path_first, int count_first, char** path_second, int cou
     }
 
     cool_print (MY_PURPLE "\nSame characteristics:\n" NO_COLOR, NORM_TEMP);
+    int sovpalo = 0;
     for (int k = i + 1; k < count_first; k++) {
         printf (" - %s\n", path_first[k]);
         free (path_first[k]);
+        sovpalo++;
         path_first[k] = NULL;
     }
+    if (sovpalo == 0) printf ("0\n");
 
     for (int k = j + 1; k < count_second; k++) {
         free (path_second[k]);
@@ -536,18 +539,24 @@ void comparison (char** path_first, int count_first, char** path_second, int cou
     }
 
     cool_print (MY_PURPLE "But first: \n" NO_COLOR, NORM_TEMP);
+    int first = 0;
     for (int k = i; k >= 0; k--) {
         printf (" - %s\n", path_first[k]);
         free (path_first[k]);
+        first++;
         path_first[k] = NULL;
     }
+    if (first == 0) printf (" - nothing else\n");
 
     cool_print (MY_PURPLE "And second: \n" NO_COLOR, NORM_TEMP);
+    int second = 0;
     for (int k = j; k >= 0; k--) {
         printf (" - %s\n", path_second[k]);
         free (path_second[k]);
+        second++;
         path_first[k] = NULL;
     }
+    if (second == 0) printf (" - nothing else\n");
 }
 
 void destroy_tree (node_t* node) {

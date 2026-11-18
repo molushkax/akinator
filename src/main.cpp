@@ -22,5 +22,4 @@ int main () {
     return 0;
 }
 
-//TODO errors
 //TODO readme)

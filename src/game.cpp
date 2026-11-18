@@ -42,6 +42,13 @@ void start_game_graphics (void) { //TODO error return
     SetTargetFPS (60);
 
     mouse_t mouse = {};
+
+    button_t btn_letsgo = { 
+        .rect = { 235, 470, 200, 60 },
+        .text = "LET'S GO",
+        .base_color = GRAY, .hovered_color = PURPLE, .pressed_color = DARKPURPLE,
+        .is_down_on_button = false
+    };
     
     button_t btn_yes = { 
         .rect = { 100, 410, 200, 60 },
@@ -78,10 +85,10 @@ void start_game_graphics (void) { //TODO error return
     };
 
     bool answer_sound_played = false;
+    state_of_game_t state = START_MENU;
 
     while (!WindowShouldClose ()) {
         UpdateMusicStream (dinastiya);
-
         mouse.mouse_pos = GetMousePosition ();
         mouse.is_down = IsMouseButtonDown (MOUSE_BUTTON_LEFT);
         mouse.is_released = IsMouseButtonReleased (MOUSE_BUTTON_LEFT);
@@ -90,54 +97,18 @@ void start_game_graphics (void) { //TODO error return
         ClearBackground (RAYWHITE);
         DrawTexture (background, 0, 0, WHITE);
         
-        node_t* current = tree->current_node;
-        bool is_leaf = (current->positive == NULL && current->negative == NULL);
-
-        draw_button (&btn_restart, mouse.mouse_pos, mouse.is_down, 15);
-        draw_button (&btn_exit,    mouse.mouse_pos, mouse.is_down, 15);
-
-        float volume = update_and_draw_slider (&volume_slider, mouse.mouse_pos, mouse.is_down, mouse.is_released);
-        int volume_in_procents = (int)(volume * 100);
-        const char* text_pro = TextFormat ("SOUND: %d %%", volume_in_procents);
-        DrawText (text_pro, 551, 87, 14, BLACK);
-
-        if (update_button (&btn_restart, mouse.mouse_pos, mouse.is_released)) {
-            tree->current_node = tree->root;
-            current  = tree->current_node;
-            StopSound (answer);
-            answer_sound_played = true;
-        }
-
-        if (update_button (&btn_exit, mouse.mouse_pos, mouse.is_released)) {
-            CloseWindow ();
-        }
-
-        if (!is_leaf) {
-            const char* text = TextFormat ("Is it %s?", current->text); //TODO озвучка звук
-            int text_width = MeasureText (text, 70);
-
-            DrawText (text, (800 - text_width) / 2, 330, 50, DARKGRAY);
-
-            draw_button (&btn_yes, mouse.mouse_pos, mouse.is_down, 40);
-            draw_button (&btn_no,  mouse.mouse_pos, mouse.is_down, 40);
-
-            if (update_button (&btn_yes, mouse.mouse_pos, mouse.is_released)) {
-                tree->current_node = current->positive;
+        if (state == START_MENU) {
+            draw_menu_screen (&btn_letsgo, mouse);
+            if (update_button (&btn_letsgo, mouse.mouse_pos, mouse.is_released)) {
+                state = START_PLAY;
             }
-
-            if (update_button (&btn_no, mouse.mouse_pos, mouse.is_released)) {
-                tree->current_node = current->negative;
-            } 
         }
 
-        else {
-            const char* text = TextFormat ("I think it's %s", current->text);
-            int text_width = MeasureText (text, 55);
-            DrawText (text, (800 - text_width) / 2, 370, 40, DARKGRAY);
-
-            if (!answer_sound_played) {
-                PlaySound (answer);
-                answer_sound_played = true;
+        if (state == START_PLAY) {
+            draw_game_screen (tree, &btn_yes, &btn_no, &btn_restart, &btn_exit,
+                              &volume_slider, mouse, answer, &answer_sound_played);
+            if (update_button (&btn_exit, mouse.mouse_pos, mouse.is_released)) {
+                state = START_MENU;
             }
         }
 
@@ -228,4 +199,72 @@ float update_and_draw_slider (slider_t* slider, Vector2 mouse_pos, bool is_mouse
     DrawCircleV (slider_pos, radius_kruga_slidera, slider->is_dragging ? DARKBLUE : BLUE);
 
     return slider->value;
+}
+
+void draw_menu_screen (button_t* btn, mouse_t mouse) {
+    assert (btn != NULL);
+
+    const char* text_hello = TextFormat ("   Hello, my dear user!\n" 
+                                         "Thank you for choosing\n"
+                                         "   mashka's akinator");
+    DrawText (text_hello, 90, 320, 40, DARKGRAY);
+    draw_button (btn, mouse.mouse_pos, mouse.is_down, 40);
+}
+
+void draw_game_screen (tree_t* tree, button_t* btn_yes, button_t* btn_no, button_t* btn_restart, button_t* btn_exit, 
+                       slider_t* volume_slider, mouse_t mouse, Sound answer, bool* answer_sound_played) {
+    assert (tree    != NULL);
+    assert (btn_yes != NULL);
+    assert (btn_no  != NULL);
+    assert (btn_restart != NULL);
+    assert (btn_exit != NULL);
+    assert (volume_slider != NULL);
+    assert (answer_sound_played != NULL);
+
+    node_t* current = tree->current_node;
+    bool is_leaf = (current->positive == NULL && current->negative == NULL);
+
+    draw_button (btn_restart, mouse.mouse_pos, mouse.is_down, 15);
+    draw_button (btn_exit,    mouse.mouse_pos, mouse.is_down, 15);
+
+    float volume = update_and_draw_slider (volume_slider, mouse.mouse_pos, mouse.is_down, mouse.is_released);
+    int volume_in_procents = (int)(volume * 100);
+    const char* text_pro = TextFormat ("SOUND: %d %%", volume_in_procents);
+    DrawText (text_pro, 551, 87, 14, BLACK);
+
+    if (update_button (btn_restart, mouse.mouse_pos, mouse.is_released)) {
+        tree->current_node = tree->root;
+        current  = tree->current_node;
+        StopSound (answer);
+        *answer_sound_played = true;
+    }
+
+    if (!is_leaf) {
+        const char* text = TextFormat ("Is it %s?", current->text); //TODO озвучка
+        int text_width = MeasureText (text, 70);
+
+        DrawText (text, (800 - text_width) / 2, 330, 50, DARKGRAY);
+
+        draw_button (btn_yes, mouse.mouse_pos, mouse.is_down, 40);
+        draw_button (btn_no,  mouse.mouse_pos, mouse.is_down, 40);
+
+        if (update_button (btn_yes, mouse.mouse_pos, mouse.is_released)) {
+            tree->current_node = current->positive;
+        }
+
+        if (update_button (btn_no, mouse.mouse_pos, mouse.is_released)) {
+            tree->current_node = current->negative;
+        } 
+    }
+
+    else {
+        const char* text = TextFormat ("I think it's %s", current->text);
+        int text_width = MeasureText (text, 55);
+        DrawText (text, (800 - text_width) / 2, 370, 40, DARKGRAY);
+
+        if (!(*answer_sound_played)) {
+            PlaySound (answer);
+            *answer_sound_played = true;
+        }
+    }
 }
