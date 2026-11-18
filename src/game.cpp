@@ -57,7 +57,7 @@ void start_game_graphics (void) { //TODO error return
 
         if (!end_game) {
             if (!is_node) {
-                const char* text = TextFormat ("Is it %s?", current->text);
+                const char* text = TextFormat ("Is it %s?", current->text); //TODO озвучка звук
                 int text_width = MeasureText (text, 70);
 
                 DrawText (text, (800 - text_width) / 2, 330, 50, DARKGRAY);
@@ -65,8 +65,11 @@ void start_game_graphics (void) { //TODO error return
                 Rectangle if_yes_rec = { 100, 410, 200, 60 };
                 if (CheckCollisionPointRec (mouse, if_yes_rec)) {
                     DrawRectangleRec (if_yes_rec, GREEN);
-                    if (IsMouseButtonPressed (MOUSE_LEFT_BUTTON)) {
-                        tree->current_node = current->positive;
+                    if (IsMouseButtonDown (MOUSE_LEFT_BUTTON)) {
+                        DrawRectangleRec (if_yes_rec, DARKGREEN);
+                        if (IsMouseButtonPressed (MOUSE_LEFT_BUTTON)) {
+                            tree->current_node = current->positive;
+                        }
                     }
                 }
 
@@ -77,8 +80,11 @@ void start_game_graphics (void) { //TODO error return
                 Rectangle if_no_rec = { 350, 410, 200, 60 };
                 if (CheckCollisionPointRec (mouse, if_no_rec)) {
                     DrawRectangleRec (if_no_rec, RED);
-                    if (IsMouseButtonPressed (MOUSE_LEFT_BUTTON)) {
-                        tree->current_node = current->negative;
+                    if (IsMouseButtonDown (MOUSE_LEFT_BUTTON)) {
+                        DrawRectangleRec (if_no_rec, MAROON);
+                        if (IsMouseButtonPressed (MOUSE_LEFT_BUTTON)) {
+                            tree->current_node = current->negative;
+                        }
                     }
                 }
 
@@ -102,10 +108,13 @@ void start_game_graphics (void) { //TODO error return
             Rectangle if_restart_rec = { 220, 410, 200, 60 };
             if (CheckCollisionPointRec (mouse, if_restart_rec)) {
                 DrawRectangleRec (if_restart_rec, SKYBLUE);
-                if (IsMouseButtonPressed (MOUSE_LEFT_BUTTON)) {
-                    tree->current_node = tree->root;
-                    end_game = false;
-                }
+                if (IsMouseButtonDown (MOUSE_LEFT_BUTTON)) {
+                        DrawRectangleRec (if_restart_rec, DARKBLUE);
+                        if (IsMouseButtonPressed (MOUSE_LEFT_BUTTON)) {
+                            tree->current_node = tree->root;
+                            end_game = false;
+                        }
+                    }
             }
 
             else DrawRectangleRec (if_restart_rec, GRAY);
@@ -125,5 +134,37 @@ void start_game_graphics (void) { //TODO error return
 
     destroy_tree (tree->root);
     free (tree);
+}
+
+bool update_button (button_t* btn, Vector2 mouse_pos, bool is_mouse_released) { // проверяет, кликнули ли по кнопке
+    assert (btn != NULL);
+
+    bool is_hovered = CheckCollisionPointRec (mouse_pos, btn->rect);
+    bool is_pressed = false;
+
+    if (is_hovered && is_mouse_released) is_pressed = true;
+
+    return is_pressed;
+}
+
+void draw_button (button_t* btn, Vector2 mouse_pos, bool is_mouse_down) {
+    assert (btn != NULL);
+
+    bool is_hovered = CheckCollisionPointRec (mouse_pos, btn->rect);
+
+    if (is_hovered && is_mouse_down) {
+        DrawRectangleRec (btn->rect, btn->pressed_color);
+    }
+
+    else if (is_hovered && !is_mouse_down) {
+        DrawRectangleRec (btn->rect, btn->hovered_color);
+    }
+
+    if (!is_hovered) {
+        DrawRectangleRec (btn->rect, btn->base_color);
+    }
+
+    int text_width = MeasureText (btn->text, 30);
+    DrawText (btn->text, (int)(btn->rect.x + ((float)btn->rect.width - (float)text_width) / 2), (int)btn->rect.y + 15, 30, WHITE);
 }
 

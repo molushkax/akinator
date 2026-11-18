@@ -36,7 +36,7 @@ struct tree_t {
     size_t  size_of_tree;
 };
 
-struct buffer {
+struct buffer_t {
     const char* data;
     size_t position;
 };
@@ -48,7 +48,7 @@ enum tree_error_t {
     ERROR_CHILDREN             = 3
 };
 
-enum slow_print {TOO_SLOW_TEMP = 70, SLOW_TEMP = 50, DED_TEMP = 33, NORM_TEMP = 10};
+enum slow_print {TOO_SLOW_TEMP = 70, SLOW_TEMP = 50, DED_TEMP = 33, NORM_TEMP = 0};
 
 tree_error_t tree_ctor        (tree_t* tree, const char* value_of_root);
 int tree_verify               (tree_t* tree, const char* function_name, int line);

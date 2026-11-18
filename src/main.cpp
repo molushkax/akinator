@@ -15,13 +15,12 @@ int main () {
                     break;
         case COMPARISON: start_comparison ();
                     break;
-        default:  printf ("You wrote something else");
+        default: printf ("You wrote something else");
                     break;
     }
-
 
     return 0;
 }
 
-//TODO errors!!!
+//TODO errors
 //TODO readme)

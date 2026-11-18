@@ -52,7 +52,7 @@ node_t* read_data_from_file (FILE* in) {
     size_t read_bytes = fread (file_info, 1, file_size, in);
     file_info[read_bytes] = '\0';
 
-    buffer buf = { .data = file_info, .position = 0};
+    buffer_t buf = { .data = file_info, .position = 0};
 
     node_t* root = read_data_from_buffer (&buf);
 
@@ -61,7 +61,7 @@ node_t* read_data_from_file (FILE* in) {
     return root;
 }
 
-node_t* read_data_from_buffer (buffer* buf) {
+node_t* read_data_from_buffer (buffer_t* buf) {
     assert (buf != NULL);
 
     if (skip_spaces_in_buffer (buf) != '(') return NULL;
@@ -96,7 +96,7 @@ node_t* read_data_from_buffer (buffer* buf) {
     return node;
 }
 
-void buffer_read_word (buffer* buf, char* text, size_t max_len) {
+void buffer_read_word (buffer_t* buf, char* text, size_t max_len) {
     assert (buf != NULL);
     assert (text != NULL);
 
@@ -121,7 +121,7 @@ void buffer_read_word (buffer* buf, char* text, size_t max_len) {
     if (c != EOF) return_back_in_buffer (c, buf);
 }
 
-int get_char_from_buffer (buffer* buf) {
+int get_char_from_buffer (buffer_t* buf) {
     assert (buf != NULL);
 
     if (buf->data[buf->position] == '\0') return EOF;
@@ -129,13 +129,13 @@ int get_char_from_buffer (buffer* buf) {
     return buf->data[buf->position++];
 }
 
-void return_back_in_buffer (int c, buffer* buf) {
+void return_back_in_buffer (int c, buffer_t* buf) {
     assert (buf != NULL);
 
     if (c != EOF && buf->position > 0) buf->position--;
 }
 
-int skip_spaces_in_buffer (buffer* buf) {
+int skip_spaces_in_buffer (buffer_t* buf) {
     assert (buf != NULL);
 
     int c = 0;
@@ -377,7 +377,7 @@ void start_definition (FILE* tree_data) {
     char* buffer_for_def = get_buffer_with_info_from_file (tree_data);
     if (buffer_for_def == NULL) return; //TODO errors
 
-    buffer buf = { .data = buffer_for_def, .position = 0 };
+    buffer_t buf = { .data = buffer_for_def, .position = 0 };
     node_t* root = read_data_from_buffer (&buf);
     if (root == NULL) {
         free (buffer_for_def);
@@ -497,7 +497,7 @@ void get_definition (char* word_to_define, node_t** target, FILE* com_in) {
     char* buffer_for_def = get_buffer_with_info_from_file (com_in);
     if (buffer_for_def == NULL) return;
 
-    buffer buf = { .data = buffer_for_def, .position = 0 };
+    buffer_t buf = { .data = buffer_for_def, .position = 0 };
     node_t* root = read_data_from_buffer (&buf);
     if (root == NULL) {
         free (buffer_for_def);
