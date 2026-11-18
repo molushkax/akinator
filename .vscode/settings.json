@@ -41,5 +41,6 @@
         "vronskiy",
         "xlink",
         "zarina"
-    ]
+    ],
+    "C_Cpp.errorSquiggles": "disabled"
 }
