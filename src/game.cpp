@@ -64,6 +64,13 @@ void start_game_graphics (void) { //TODO error return
         .is_down_on_button = false
     };
 
+    button_t btn_ok = { 
+        .rect = { 275, 480, 150, 55 },
+        .text = "OK",
+        .base_color = GRAY, .hovered_color = GREEN, .pressed_color = DARKGREEN,
+        .is_down_on_button = false
+    };
+
     button_t btn_restart = { 
         .rect = { 550, 20, 80, 25 },
         .text = "RESTART",
@@ -87,6 +94,14 @@ void start_game_graphics (void) { //TODO error return
     bool answer_sound_played = false;
     state_of_game_t state = START_MENU;
 
+    text_input_t input_text = {
+        .buffer = {0}, .length = 0,
+        .text_rect = { 100, 400, 450, 50 },
+        .active = false
+    };
+
+    char pending_guess[MAX_INPUT_LEN + 1] = {};
+
     while (!WindowShouldClose ()) {
         UpdateMusicStream (dinastiya);
         mouse.mouse_pos = GetMousePosition ();
@@ -97,20 +112,145 @@ void start_game_graphics (void) { //TODO error return
         ClearBackground (RAYWHITE);
         DrawTexture (background, 0, 0, WHITE);
         
-        if (state == START_MENU) {
-            draw_menu_screen (&btn_letsgo, mouse);
-            if (update_button (&btn_letsgo, mouse.mouse_pos, mouse.is_released)) {
-                state = START_PLAY;
+        switch (state) {
+            case START_MENU: {
+                draw_menu_screen (&btn_letsgo, mouse);
+                if (update_button (&btn_letsgo, mouse.mouse_pos, mouse.is_released)) {
+                    state = START_PLAY;
+                }
+                break;
             }
-        }
 
-        if (state == START_PLAY) {
-            draw_game_screen (tree, &btn_yes, &btn_no, &btn_restart, &btn_exit,
-                              &volume_slider, mouse, answer, &answer_sound_played);
-            if (update_button (&btn_exit, mouse.mouse_pos, mouse.is_released)) {
-                state = START_MENU;
+            case START_PLAY: {
+                draw_game_screen (tree, &btn_yes, &btn_no, &btn_restart, &btn_exit,
+                                &volume_slider, mouse, answer, &answer_sound_played);
+                if (update_button (&btn_exit, mouse.mouse_pos, mouse.is_released)) {
+                    CloseWindow ();
+                }
+
+                node_t* current = tree->current_node;
+                bool is_leaf = (current->positive == NULL);
+
+                if (is_leaf) {
+                    answer_sound_played = false;
+                    state = GUESS_CHECK;
+                }
+
+                break;
             }
-        }
+
+            case GUESS_CHECK: {
+                node_t* current = tree->current_node;
+                draw_guess_check (current, &btn_yes, &btn_no, mouse);
+
+                draw_button (&btn_restart, mouse.mouse_pos, mouse.is_down, 15);
+                draw_button (&btn_exit,    mouse.mouse_pos, mouse.is_down, 15);
+
+                if (update_button (&btn_restart, mouse.mouse_pos, mouse.is_released)) {
+                    tree->current_node = tree->root;
+                    StopSound (answer);
+                    state = START_PLAY;
+                    break;
+                }
+
+                if (update_button (&btn_exit, mouse.mouse_pos, mouse.is_released)) {
+                    CloseWindow ();
+                }
+
+                if (!answer_sound_played) {
+                    PlaySound (answer);
+                    answer_sound_played = true;
+                }
+
+                if (update_button (&btn_yes, mouse.mouse_pos, mouse.is_released)) {
+                    state = WON;
+                }
+                if (update_button (&btn_no, mouse.mouse_pos, mouse.is_released)) {
+                    text_input_clear (&input_text);
+                    input_text.active = true;
+                    state = ASK_NEW_ITEM;
+                }
+
+                break;
+            }
+
+            case WON: {
+                DrawText ("Yuhuuuuu! I' m so happy!\n"
+                          "  Thanks for playing", 150, 400, 40, DARKGRAY);
+                draw_button (&btn_restart, mouse.mouse_pos, mouse.is_down, 15);
+                draw_button (&btn_exit,    mouse.mouse_pos, mouse.is_down, 15);
+
+                if (update_button (&btn_restart, mouse.mouse_pos, mouse.is_released)) {
+                    tree->current_node = tree->root;
+                    StopSound (answer);
+                    state = START_PLAY;
+                    break;
+                }
+
+                if (update_button (&btn_exit, mouse.mouse_pos, mouse.is_released)) {
+                    CloseWindow ();
+                }
+
+                break;
+            }
+
+            case ASK_NEW_ITEM: {
+                DrawText ("Who did you actually wish for?", 100, 340, 40, DARKGRAY);
+                draw_input_text (&input_text);
+
+                draw_button (&btn_ok, mouse.mouse_pos, mouse.is_down, 30);
+                bool ok = update_button (&btn_ok, mouse.mouse_pos, mouse.is_released);
+                bool enter = input_text_submitted ();
+
+                if ((ok || enter) && input_text.length > 0) {
+                    strncpy (pending_guess, input_text.buffer, MAX_INPUT_LEN);
+                    pending_guess[MAX_INPUT_LEN] = '\0';
+                    text_input_clear (&input_text);
+                    state = ASK_DIFFERENCE;
+                }
+
+                break;
+            }
+
+            case ASK_DIFFERENCE: {
+                DrawText (TextFormat ("How is %s different from %s?", pending_guess, tree->current_node->text),
+                                      40, 320, 30, DARKGRAY);
+                draw_input_text (&input_text);
+
+                draw_button (&btn_ok, mouse.mouse_pos, mouse.is_down, 30);
+                bool ok = update_button (&btn_ok, mouse.mouse_pos, mouse.is_released);
+                bool enter = input_text_submitted ();
+
+                if ((ok || enter) && input_text.length > 0) {
+                    add_new_item (tree, tree->current_node, pending_guess, input_text.buffer);
+                    tree->size_of_tree = tree_size (tree->root);
+                    text_input_clear (&input_text);
+                    input_text.active = false;
+                    tree->current_node = tree->root;
+                    state = STATE_ADDED;
+                }
+
+                break;
+            }
+
+            case STATE_ADDED: {                                        //TODO functions po krasote
+                DrawText ("Thank you for your support\n"
+                          "     I remembered", 150, 400, 40, DARKGRAY);
+                draw_button (&btn_ok, mouse.mouse_pos, mouse.is_down, 30);
+                FILE* out = fopen ("data/tree_data.txt", "w");
+                update_base (tree->root, out);
+                fclose (out);
+                if (update_button (&btn_ok, mouse.mouse_pos, mouse.is_released)) {
+                    input_text.active = true;
+                    state = START_MENU;
+                }
+                break;
+            }
+
+            default: printf ("something strange\n"); break;
+        } 
+        
+        if (input_text.active) update_text_input (&input_text);
 
         EndDrawing ();
     }
@@ -256,15 +396,85 @@ void draw_game_screen (tree_t* tree, button_t* btn_yes, button_t* btn_no, button
             tree->current_node = current->negative;
         } 
     }
+}
 
-    else {
-        const char* text = TextFormat ("I think it's %s", current->text);
-        int text_width = MeasureText (text, 55);
-        DrawText (text, (800 - text_width) / 2, 370, 40, DARKGRAY);
+void update_text_input (text_input_t* text) {
+    assert (text != NULL);
 
-        if (!(*answer_sound_played)) {
-            PlaySound (answer);
-            *answer_sound_played = true;
+    if (!text->active) return;
+
+    int code_of_char = GetCharPressed ();
+
+    while (code_of_char > 0) {
+        if (code_of_char >= 32 && code_of_char <= 125 && text->length < MAX_INPUT_LEN) {
+            text->buffer[text->length++] = (char)code_of_char;
+            text->buffer[text->length]   = '\0';
         }
+        code_of_char = GetCharPressed ();
     }
+
+    if (IsKeyPressed (KEY_BACKSPACE) && text->length > 0) {
+        text->length--;
+        text->buffer[text->length] = '\0';
+    }
+}
+
+bool input_text_submitted (void) {
+    return IsKeyPressed (KEY_ENTER) || IsKeyPressed (KEY_KP_ENTER);
+}
+
+void draw_input_text (text_input_t* text) {
+    assert (text != NULL);
+
+    DrawRectangleRec (text->text_rect, text->active ? LIGHTGRAY : RAYWHITE);
+    DrawRectangleLinesEx  (text->text_rect, 2, text->active ? BLUE : DARKGRAY);
+    DrawText (text->buffer[0] ? text->buffer : "type here",
+              (int)text->text_rect.x + 8, (int)text->text_rect.y + 8, 30,
+              text->buffer[0] ? BLACK : GRAY);
+}
+
+void text_input_clear (text_input_t* text) {
+    assert (text != NULL);
+
+    text->buffer[0] = '\0';
+    text->length    = 0;
+}
+
+node_t* make_leaf (const char* text) {
+    assert (text != NULL);
+
+    node_t* n = (node_t*)calloc (1, sizeof (node_t));
+    n->text = strdup (text);
+    n->positive = NULL;
+    n->negative = NULL;
+    return n;
+}
+
+void add_new_item (tree_t* tree, node_t* current, const char* guess, const char* difference) {
+    assert (tree != NULL);
+    assert (current != NULL);
+    assert (guess != NULL);
+    assert (difference != NULL);
+
+    const char* old_text = current->text;
+
+    node_t* new_yes = make_leaf (guess);
+    node_t* new_no  = make_leaf (old_text);
+
+    current->text     = strdup (difference);
+    current->positive = new_yes;
+    current->negative = new_no;
+}
+
+void draw_guess_check (node_t* current, button_t* btn_yes, button_t* btn_no, mouse_t mouse) {
+    assert (current != NULL);
+    assert (btn_yes != NULL);
+    assert (btn_no  != NULL);
+
+    const char* text = TextFormat ("I think it/he/she is %s.\nAm I right?", current->text);
+    int text_width = MeasureText (text, 40);
+    DrawText (text, (655 - text_width) / 2, 330, 40, DARKGRAY);
+
+    draw_button (btn_yes, mouse.mouse_pos, mouse.is_down, 40);
+    draw_button (btn_no,  mouse.mouse_pos, mouse.is_down, 40);
 }
