@@ -21,8 +21,8 @@ struct button_t {
 
 struct slider_t {
     Rectangle slider_track_rect; // дорожка ползунка
-    float value;                // значение громкости
-    bool   is_dragging;          // тянет ли юзер ползунок
+    float value;                 // значение громкости
+    bool  is_dragging;           // тянет ли юзер ползунок
 };
 
 struct text_input_t {

@@ -321,11 +321,12 @@ float update_and_draw_slider (slider_t* slider, Vector2 mouse_pos, bool is_mouse
             slider->value = 1.0f;
         }
 
-        if (new_value < 0.0f) {
+        else if (new_value < 0.0f) {
             slider->value = 0.0f;
         }
 
-        slider->value = new_value;
+        else slider->value = new_value;
+        
         SetMasterVolume (slider->value);
     }
 
