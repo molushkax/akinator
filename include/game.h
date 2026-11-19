@@ -35,6 +35,9 @@ struct text_input_t {
 enum state_of_game_t {
     START_MENU,
     START_PLAY,
+    START_DEFINE,
+    WRITE_DEFINITION,
+    START_COMPARE,
     GUESS_CHECK,
     ASK_NEW_ITEM,
     WON,
@@ -42,20 +45,21 @@ enum state_of_game_t {
     STATE_ADDED
 };
 
-tree_t* load_game_tree   (const char* filename);
-void start_game_graphics (void);
-bool update_button       (button_t* btn, Vector2 mouse_pos, bool is_mouse_released);
-void draw_button         (button_t* btn, Vector2 mouse_pos, bool is_mouse_down, int shrift);
+tree_t* load_game_tree     (const char* filename);
+void start_game_graphics   (void);
+bool update_button         (button_t* btn, Vector2 mouse_pos, bool is_mouse_released);
+void draw_button           (button_t* btn, Vector2 mouse_pos, bool is_mouse_down, int shrift);
 float update_and_draw_slider (slider_t* slider, Vector2 mouse_pos, bool is_mouse_down, bool is_mouse_released);
-void draw_menu_screen    (button_t* btn, mouse_t mouse);
-void draw_game_screen    (tree_t* tree, button_t* btn_yes, button_t* btn_no, button_t* btn_restart, button_t* btn_exit, 
-                          slider_t* volume_slider, mouse_t mouse, Sound answer, bool* answer_sound_play);
-void update_text_input   (text_input_t* text); 
-bool input_text_submitted (void);
-void draw_input_text     (text_input_t* text);
-void text_input_clear    (text_input_t* text);
-node_t* make_leaf        (const char* text);
-void add_new_item        (tree_t* tree, node_t* current, const char* guess, const char* difference);
-void draw_guess_check    (node_t* current, button_t* btn_yes, button_t* btn_no, mouse_t mouse);
+void draw_menu_screen      (button_t* btn_letsplay, button_t* btn_letsdefine, button_t* btn_letscompare, mouse_t mouse);
+void draw_game_screen      (tree_t* tree, button_t* btn_yes, button_t* btn_no, button_t* btn_restart, button_t* btn_exit, 
+                            slider_t* volume_slider, mouse_t mouse, Sound answer, bool* answer_sound_play);
+void update_text_input     (text_input_t* text); 
+bool input_text_submitted  (void);
+void draw_input_text       (text_input_t* text);
+void text_input_clear      (text_input_t* text);
+node_t* make_leaf          (const char* text);
+void add_new_item          (tree_t* tree, node_t* current, const char* guess, const char* difference);
+void draw_guess_check      (node_t* current, button_t* btn_yes, button_t* btn_no, mouse_t mouse);
+void start_game_definition (char* word_to_define, FILE* tree_data);
 
 #endif

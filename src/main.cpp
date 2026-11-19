@@ -22,4 +22,4 @@ int main () {
     return 0;
 }
 
-//TODO readme)
+//TODO режимы в графике

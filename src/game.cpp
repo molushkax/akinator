@@ -23,7 +23,7 @@ tree_t* load_game_tree (const char* filename) {
     return tree;
 }
 
-void start_game_graphics (void) { //TODO error return
+void start_game_graphics (void) { 
     tree_t* tree = load_game_tree ("data/tree_data.txt");
     TREE_ASSERT (tree);
     if (tree == NULL || tree->root == NULL) {
@@ -43,9 +43,23 @@ void start_game_graphics (void) { //TODO error return
 
     mouse_t mouse = {};
 
-    button_t btn_letsgo = { 
-        .rect = { 235, 470, 200, 60 },
-        .text = "LET'S GO",
+    button_t btn_letsplay = { 
+        .rect = { 330, 480, 230, 40 },
+        .text = "LET'S PLAY",
+        .base_color = GRAY, .hovered_color = PURPLE, .pressed_color = DARKPURPLE,
+        .is_down_on_button = false
+    };
+
+    button_t btn_letsdefine = { 
+        .rect = { 330, 540, 230, 40 },
+        .text = "LET'S DEFINE",
+        .base_color = GRAY, .hovered_color = PURPLE, .pressed_color = DARKPURPLE,
+        .is_down_on_button = false
+    };
+
+    button_t btn_letscompare = { 
+        .rect = { 330, 600, 230, 40 },
+        .text = "LET'S COMPARE",
         .base_color = GRAY, .hovered_color = PURPLE, .pressed_color = DARKPURPLE,
         .is_down_on_button = false
     };
@@ -67,6 +81,13 @@ void start_game_graphics (void) { //TODO error return
     button_t btn_ok = { 
         .rect = { 250, 480, 150, 55 },
         .text = "OK",
+        .base_color = GRAY, .hovered_color = GREEN, .pressed_color = DARKGREEN,
+        .is_down_on_button = false
+    };
+
+    button_t btn_ok2 = { 
+        .rect = { 235, 550, 200, 55 },
+        .text = "THANK YOU",
         .base_color = GRAY, .hovered_color = GREEN, .pressed_color = DARKGREEN,
         .is_down_on_button = false
     };
@@ -101,6 +122,7 @@ void start_game_graphics (void) { //TODO error return
     state_of_game_t state = START_MENU;
 
     char pending_guess[MAX_INPUT_LEN + 1] = {};
+    char word_to_define[MAX_INPUT_LEN + 1] = {};
 
     while (!WindowShouldClose ()) {
         UpdateMusicStream (dinastiya);
@@ -134,10 +156,20 @@ void start_game_graphics (void) { //TODO error return
         
         switch (state) {
             case START_MENU: {
-                draw_menu_screen (&btn_letsgo, mouse);
+                draw_menu_screen (&btn_letsplay, &btn_letsdefine, &btn_letscompare, mouse);
 
-                if (update_button (&btn_letsgo, mouse.mouse_pos, mouse.is_released)) {
+                if (update_button (&btn_letsplay, mouse.mouse_pos, mouse.is_released)) {
                     state = START_PLAY;
+                }
+
+                if (update_button (&btn_letsdefine, mouse.mouse_pos, mouse.is_released)) {
+                    text_input_clear (&input_text);
+                    input_text.active = true;
+                    state = START_DEFINE;
+                }
+
+                if (update_button (&btn_letscompare, mouse.mouse_pos, mouse.is_released)) {
+                    state = START_COMPARE;
                 }
 
                 break;
@@ -155,6 +187,41 @@ void start_game_graphics (void) { //TODO error return
                     state = GUESS_CHECK;
                 }
 
+                break;
+            }
+
+            case START_DEFINE: {
+                DrawText ("What word do you want to define?", 30, 350, 35, DARKGRAY);
+                draw_input_text (&input_text);
+                
+                draw_button (&btn_ok, mouse.mouse_pos, mouse.is_down, 30);
+                bool ok = update_button (&btn_ok, mouse.mouse_pos, mouse.is_released);
+                bool enter = input_text_submitted ();
+
+
+                if ((ok || enter) && input_text.length > 0) {
+                    strncpy (word_to_define, input_text.buffer, MAX_INPUT_LEN);
+                    word_to_define[MAX_INPUT_LEN] = '\0';
+                    text_input_clear (&input_text);
+                    state = WRITE_DEFINITION;
+                }
+
+                break;
+            }
+
+            case WRITE_DEFINITION: {
+                FILE* in = fopen ("data/tree_data.txt", "r");
+                start_game_definition (word_to_define, in);
+                fclose (in);
+
+                draw_button (&btn_ok2, mouse.mouse_pos, mouse.is_down, 30);
+                if (update_button (&btn_ok2, mouse.mouse_pos, mouse.is_released)) {
+                    state = START_MENU;
+                }
+                break;
+            }
+
+            case START_COMPARE: {
                 break;
             }
 
@@ -326,7 +393,7 @@ float update_and_draw_slider (slider_t* slider, Vector2 mouse_pos, bool is_mouse
         }
 
         else slider->value = new_value;
-        
+
         SetMasterVolume (slider->value);
     }
 
@@ -338,14 +405,18 @@ float update_and_draw_slider (slider_t* slider, Vector2 mouse_pos, bool is_mouse
     return slider->value;
 }
 
-void draw_menu_screen (button_t* btn, mouse_t mouse) {
-    assert (btn != NULL);
+void draw_menu_screen (button_t* btn_letsplay, button_t* btn_letsdefine, button_t* btn_letscompare, mouse_t mouse) {
+    assert (btn_letsplay    != NULL);
+    assert (btn_letsdefine  != NULL);
+    assert (btn_letscompare != NULL);
 
     const char* text_hello = TextFormat ("   Hello, my dear user!\n" 
                                          "Thank you for choosing\n"
                                          "   mashka's akinator");
     DrawText (text_hello, 90, 320, 40, DARKGRAY);
-    draw_button (btn, mouse.mouse_pos, mouse.is_down, 40);
+    draw_button (btn_letsplay,    mouse.mouse_pos, mouse.is_down, 25);
+    draw_button (btn_letsdefine,  mouse.mouse_pos, mouse.is_down, 25);
+    draw_button (btn_letscompare, mouse.mouse_pos, mouse.is_down, 25);
 }
 
 void draw_game_screen (tree_t* tree, button_t* btn_yes, button_t* btn_no, button_t* btn_restart, button_t* btn_exit, 
@@ -490,4 +561,40 @@ void draw_guess_check (node_t* current, button_t* btn_yes, button_t* btn_no, mou
 
     draw_button (btn_yes, mouse.mouse_pos, mouse.is_down, 40);
     draw_button (btn_no,  mouse.mouse_pos, mouse.is_down, 40);
+}
+
+void start_game_definition (char* word_to_define, FILE* tree_data) {
+    assert (tree_data != NULL);
+
+    char* buffer_for_def = get_buffer_with_info_from_file (tree_data);
+    if (buffer_for_def == NULL) return; //TODO errors
+
+    buffer_t buf = { .data = buffer_for_def, .position = 0 };
+    node_t* root = read_data_from_buffer (&buf);
+    if (root == NULL) {
+        free (buffer_for_def);
+        return;
+    }
+
+    node_t* target = find_character (root, word_to_define);
+    if (target == NULL) {
+        cool_print (MY_RED "Not found in base: " NO_COLOR, NORM_TEMP);
+        printf ("%s\n", word_to_define);
+    }
+
+    else {
+        int c = 0;
+        char* path[64] = {};
+        char** buffer_with_character = get_character_buffer (target, word_to_define, &c, path);
+
+        DrawText ("Definition", 100, 310, 40, DARKGRAY);
+
+        for (int i = c - 1; i >= 0; i--) {
+            DrawText (TextFormat (" - %s\n" , path[i]), 100, 490 - i * 23, 30, DARKGRAY);
+            free (path[i]);
+        }
+    }
+
+    free (buffer_for_def);
+    destroy_tree (root);
 }
