@@ -9,6 +9,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <stdint.h>
+#include <math.h>
 #include "raylib.h"
 
 #define NO_COLOR    "\033[0m"

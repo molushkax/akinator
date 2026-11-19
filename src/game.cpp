@@ -65,7 +65,7 @@ void start_game_graphics (void) { //TODO error return
     };
 
     button_t btn_ok = { 
-        .rect = { 275, 480, 150, 55 },
+        .rect = { 250, 480, 150, 55 },
         .text = "OK",
         .base_color = GRAY, .hovered_color = GREEN, .pressed_color = DARKGREEN,
         .is_down_on_button = false
@@ -91,14 +91,14 @@ void start_game_graphics (void) { //TODO error return
         .is_dragging = false
     };
 
-    bool answer_sound_played = false;
-    state_of_game_t state = START_MENU;
-
     text_input_t input_text = {
         .buffer = {0}, .length = 0,
         .text_rect = { 100, 400, 450, 50 },
         .active = false
     };
+
+    bool answer_sound_played = false;
+    state_of_game_t state = START_MENU;
 
     char pending_guess[MAX_INPUT_LEN + 1] = {};
 
@@ -111,22 +111,41 @@ void start_game_graphics (void) { //TODO error return
         BeginDrawing ();
         ClearBackground (RAYWHITE);
         DrawTexture (background, 0, 0, WHITE);
+
+        if (state != START_MENU) {
+            draw_button (&btn_restart, mouse.mouse_pos, mouse.is_down, 15);
+            draw_button (&btn_exit,    mouse.mouse_pos, mouse.is_down, 15);
+
+            if (update_button (&btn_restart, mouse.mouse_pos, mouse.is_released)) {
+                tree->current_node = tree->root;
+                StopSound (answer);
+                state = START_PLAY;
+            }
+
+            if (update_button (&btn_exit, mouse.mouse_pos, mouse.is_released)) {
+                state = START_MENU;
+            }
+
+            float volume = update_and_draw_slider (&volume_slider, mouse.mouse_pos, mouse.is_down, mouse.is_released);
+            int volume_in_procents = (int)(volume * 100);
+            const char* text_pro = TextFormat ("SOUND: %d %%", volume_in_procents);
+            DrawText (text_pro, 551, 87, 14, BLACK);
+        }
         
         switch (state) {
             case START_MENU: {
                 draw_menu_screen (&btn_letsgo, mouse);
+
                 if (update_button (&btn_letsgo, mouse.mouse_pos, mouse.is_released)) {
                     state = START_PLAY;
                 }
+
                 break;
             }
 
             case START_PLAY: {
                 draw_game_screen (tree, &btn_yes, &btn_no, &btn_restart, &btn_exit,
                                 &volume_slider, mouse, answer, &answer_sound_played);
-                if (update_button (&btn_exit, mouse.mouse_pos, mouse.is_released)) {
-                    CloseWindow ();
-                }
 
                 node_t* current = tree->current_node;
                 bool is_leaf = (current->positive == NULL);
@@ -143,20 +162,6 @@ void start_game_graphics (void) { //TODO error return
                 node_t* current = tree->current_node;
                 draw_guess_check (current, &btn_yes, &btn_no, mouse);
 
-                draw_button (&btn_restart, mouse.mouse_pos, mouse.is_down, 15);
-                draw_button (&btn_exit,    mouse.mouse_pos, mouse.is_down, 15);
-
-                if (update_button (&btn_restart, mouse.mouse_pos, mouse.is_released)) {
-                    tree->current_node = tree->root;
-                    StopSound (answer);
-                    state = START_PLAY;
-                    break;
-                }
-
-                if (update_button (&btn_exit, mouse.mouse_pos, mouse.is_released)) {
-                    CloseWindow ();
-                }
-
                 if (!answer_sound_played) {
                     PlaySound (answer);
                     answer_sound_played = true;
@@ -165,6 +170,7 @@ void start_game_graphics (void) { //TODO error return
                 if (update_button (&btn_yes, mouse.mouse_pos, mouse.is_released)) {
                     state = WON;
                 }
+
                 if (update_button (&btn_no, mouse.mouse_pos, mouse.is_released)) {
                     text_input_clear (&input_text);
                     input_text.active = true;
@@ -176,26 +182,13 @@ void start_game_graphics (void) { //TODO error return
 
             case WON: {
                 DrawText ("Yuhuuuuu! I' m so happy!\n"
-                          "  Thanks for playing", 150, 400, 40, DARKGRAY);
-                draw_button (&btn_restart, mouse.mouse_pos, mouse.is_down, 15);
-                draw_button (&btn_exit,    mouse.mouse_pos, mouse.is_down, 15);
-
-                if (update_button (&btn_restart, mouse.mouse_pos, mouse.is_released)) {
-                    tree->current_node = tree->root;
-                    StopSound (answer);
-                    state = START_PLAY;
-                    break;
-                }
-
-                if (update_button (&btn_exit, mouse.mouse_pos, mouse.is_released)) {
-                    CloseWindow ();
-                }
+                          "  Thanks for playing", 80, 380, 40, DARKGRAY);
 
                 break;
             }
 
             case ASK_NEW_ITEM: {
-                DrawText ("Who did you actually wish for?", 100, 340, 40, DARKGRAY);
+                DrawText ("Who did you actually wish for?", 15, 340, 40, DARKGRAY);
                 draw_input_text (&input_text);
 
                 draw_button (&btn_ok, mouse.mouse_pos, mouse.is_down, 30);
@@ -213,8 +206,9 @@ void start_game_graphics (void) { //TODO error return
             }
 
             case ASK_DIFFERENCE: {
-                DrawText (TextFormat ("How is %s different from %s?", pending_guess, tree->current_node->text),
-                                      40, 320, 30, DARKGRAY);
+                DrawText (TextFormat ("    How is %s different\n" 
+                                      "from %s? He/she/it is...", pending_guess, tree->current_node->text),
+                                      100, 320, 30, DARKGRAY);
                 draw_input_text (&input_text);
 
                 draw_button (&btn_ok, mouse.mouse_pos, mouse.is_down, 30);
@@ -235,15 +229,17 @@ void start_game_graphics (void) { //TODO error return
 
             case STATE_ADDED: {                                        //TODO functions po krasote
                 DrawText ("Thank you for your support\n"
-                          "     I remembered", 150, 400, 40, DARKGRAY);
+                          "         I remembered", 35, 350, 40, DARKGRAY);
                 draw_button (&btn_ok, mouse.mouse_pos, mouse.is_down, 30);
                 FILE* out = fopen ("data/tree_data.txt", "w");
                 update_base (tree->root, out);
                 fclose (out);
+
                 if (update_button (&btn_ok, mouse.mouse_pos, mouse.is_released)) {
                     input_text.active = true;
                     state = START_MENU;
                 }
+
                 break;
             }
 
@@ -367,11 +363,6 @@ void draw_game_screen (tree_t* tree, button_t* btn_yes, button_t* btn_no, button
     draw_button (btn_restart, mouse.mouse_pos, mouse.is_down, 15);
     draw_button (btn_exit,    mouse.mouse_pos, mouse.is_down, 15);
 
-    float volume = update_and_draw_slider (volume_slider, mouse.mouse_pos, mouse.is_down, mouse.is_released);
-    int volume_in_procents = (int)(volume * 100);
-    const char* text_pro = TextFormat ("SOUND: %d %%", volume_in_procents);
-    DrawText (text_pro, 551, 87, 14, BLACK);
-
     if (update_button (btn_restart, mouse.mouse_pos, mouse.is_released)) {
         tree->current_node = tree->root;
         current  = tree->current_node;
@@ -428,9 +419,29 @@ void draw_input_text (text_input_t* text) {
 
     DrawRectangleRec (text->text_rect, text->active ? LIGHTGRAY : RAYWHITE);
     DrawRectangleLinesEx  (text->text_rect, 2, text->active ? BLUE : DARKGRAY);
-    DrawText (text->buffer[0] ? text->buffer : "type here",
+    DrawText (text->buffer[0] ? text->buffer : "type here...",
               (int)text->text_rect.x + 8, (int)text->text_rect.y + 8, 30,
               text->buffer[0] ? BLACK : GRAY);
+
+    int padding = 8;
+    int font_size = 30;
+    int text_x = (int)text->text_rect.x + padding;
+    int text_y = (int)text->text_rect.y + padding;
+
+    const char* shown = text->buffer[0] ? text->buffer : "type here...";
+    Color color = text->buffer[0] ? BLACK : GRAY;
+    DrawText (shown, text_x, text_y, font_size, color);
+
+    if (text->active) {
+        float blink = fmodf ((float)GetTime (), 1.0f);
+        if (blink < 0.5f) {
+            int typed_width = MeasureText (text->buffer, font_size);
+            int caret_x = text_x + typed_width;
+            int caret_top = text_y;
+            int caret_bottom = text_y + font_size;
+            DrawLine (caret_x, caret_top, caret_x, caret_bottom, BLACK);
+        }
+    }
 }
 
 void text_input_clear (text_input_t* text) {
@@ -471,9 +482,10 @@ void draw_guess_check (node_t* current, button_t* btn_yes, button_t* btn_no, mou
     assert (btn_yes != NULL);
     assert (btn_no  != NULL);
 
-    const char* text = TextFormat ("I think it/he/she is %s.\nAm I right?", current->text);
+    const char* text = TextFormat ("I think it/he/she is %s.\n"
+                                   "Am I right?", current->text);
     int text_width = MeasureText (text, 40);
-    DrawText (text, (655 - text_width) / 2, 330, 40, DARKGRAY);
+    DrawText (text, (655 - text_width) / 2, 310, 40, DARKGRAY);
 
     draw_button (btn_yes, mouse.mouse_pos, mouse.is_down, 40);
     draw_button (btn_no,  mouse.mouse_pos, mouse.is_down, 40);
