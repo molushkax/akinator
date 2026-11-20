@@ -86,7 +86,7 @@ void start_game_graphics (void) {
     };
 
     button_t btn_ok2 = { 
-        .rect = { 235, 550, 200, 55 },
+        .rect = { 360, 400, 200, 50 },
         .text = "THANK YOU",
         .base_color = GRAY, .hovered_color = GREEN, .pressed_color = DARKGREEN,
         .is_down_on_button = false
@@ -123,6 +123,8 @@ void start_game_graphics (void) {
 
     char pending_guess[MAX_INPUT_LEN + 1] = {};
     char word_to_define[MAX_INPUT_LEN + 1] = {};
+    char first_word_to_compare[MAX_INPUT_LEN + 1] = {};
+    char second_word_to_compare[MAX_INPUT_LEN + 1] = {};
 
     while (!WindowShouldClose ()) {
         UpdateMusicStream (dinastiya);
@@ -141,11 +143,11 @@ void start_game_graphics (void) {
             if (update_button (&btn_restart, mouse.mouse_pos, mouse.is_released)) {
                 tree->current_node = tree->root;
                 StopSound (answer);
-                state = START_PLAY;
+                state = START_MENU;
             }
 
             if (update_button (&btn_exit, mouse.mouse_pos, mouse.is_released)) {
-                state = START_MENU;
+                CloseWindow ();
             }
 
             float volume = update_and_draw_slider (&volume_slider, mouse.mouse_pos, mouse.is_down, mouse.is_released);
@@ -157,6 +159,7 @@ void start_game_graphics (void) {
         switch (state) {
             case START_MENU: {
                 draw_menu_screen (&btn_letsplay, &btn_letsdefine, &btn_letscompare, mouse);
+                input_text.active = false;
 
                 if (update_button (&btn_letsplay, mouse.mouse_pos, mouse.is_released)) {
                     state = START_PLAY;
@@ -169,6 +172,8 @@ void start_game_graphics (void) {
                 }
 
                 if (update_button (&btn_letscompare, mouse.mouse_pos, mouse.is_released)) {
+                    text_input_clear (&input_text);
+                    input_text.active = true;
                     state = START_COMPARE;
                 }
 
@@ -218,10 +223,55 @@ void start_game_graphics (void) {
                 if (update_button (&btn_ok2, mouse.mouse_pos, mouse.is_released)) {
                     state = START_MENU;
                 }
+                
                 break;
             }
 
             case START_COMPARE: {
+                DrawText ("Write first of two words that\n"
+                          "      you want to compare", 65, 315, 35, DARKGRAY);
+                draw_input_text (&input_text);
+                
+                draw_button (&btn_ok, mouse.mouse_pos, mouse.is_down, 30);
+                bool ok = update_button (&btn_ok, mouse.mouse_pos, mouse.is_released);
+                bool enter = input_text_submitted ();
+
+                if ((ok || enter) && input_text.length > 0) {
+                    strncpy (first_word_to_compare, input_text.buffer, MAX_INPUT_LEN);
+                    first_word_to_compare[MAX_INPUT_LEN] = '\0';
+                    text_input_clear (&input_text);
+                    state = WRITE_SECOND_WORD;
+                }
+
+                break;
+            }
+
+            case WRITE_SECOND_WORD: {
+                DrawText ("Write second of two words that\n"
+                          "      you want to compare", 65, 315, 35, DARKGRAY);
+                draw_input_text (&input_text);
+                
+                draw_button (&btn_ok, mouse.mouse_pos, mouse.is_down, 30);
+                bool ok = update_button (&btn_ok, mouse.mouse_pos, mouse.is_released);
+                bool enter = input_text_submitted ();
+
+                if ((ok || enter) && input_text.length > 0) {
+                    strncpy (second_word_to_compare, input_text.buffer, MAX_INPUT_LEN);
+                    second_word_to_compare[MAX_INPUT_LEN] = '\0';
+                    text_input_clear (&input_text);
+                    state = GET_COMPARISON;
+                }
+
+                break;
+            }
+
+            case GET_COMPARISON: {
+                draw_comparison (first_word_to_compare, second_word_to_compare, mouse, &btn_ok2);
+
+                if (update_button (&btn_ok2, mouse.mouse_pos, mouse.is_released)) {
+                    text_input_clear (&input_text);
+                    state = START_MENU;
+                }
                 break;
             }
 
@@ -255,6 +305,8 @@ void start_game_graphics (void) {
             }
 
             case ASK_NEW_ITEM: {
+                input_text.active = true;
+
                 DrawText ("Who did you actually wish for?", 15, 340, 40, DARKGRAY);
                 draw_input_text (&input_text);
 
@@ -273,6 +325,8 @@ void start_game_graphics (void) {
             }
 
             case ASK_DIFFERENCE: {
+                input_text.active = true;
+
                 DrawText (TextFormat ("    How is %s different\n" 
                                       "from %s? He/she/it is...", pending_guess, tree->current_node->text),
                                       100, 320, 30, DARKGRAY);
@@ -303,7 +357,7 @@ void start_game_graphics (void) {
                 fclose (out);
 
                 if (update_button (&btn_ok, mouse.mouse_pos, mouse.is_released)) {
-                    input_text.active = true;
+                    input_text.active = false;
                     state = START_MENU;
                 }
 
@@ -443,7 +497,7 @@ void draw_game_screen (tree_t* tree, button_t* btn_yes, button_t* btn_no, button
     }
 
     if (!is_leaf) {
-        const char* text = TextFormat ("Is it %s?", current->text); //TODO озвучка
+        const char* text = TextFormat ("Is it %s?", current->text); 
         int text_width = MeasureText (text, 70);
 
         DrawText (text, (800 - text_width) / 2, 330, 50, DARKGRAY);
@@ -556,8 +610,8 @@ void draw_guess_check (node_t* current, button_t* btn_yes, button_t* btn_no, mou
 
     const char* text = TextFormat ("I think it/he/she is %s.\n"
                                    "Am I right?", current->text);
-    int text_width = MeasureText (text, 40);
-    DrawText (text, (655 - text_width) / 2, 310, 40, DARKGRAY);
+    int text_width = MeasureText (text, 35);
+    DrawText (text, (655 - text_width) / 2, 310, 35, DARKGRAY);
 
     draw_button (btn_yes, mouse.mouse_pos, mouse.is_down, 40);
     draw_button (btn_no,  mouse.mouse_pos, mouse.is_down, 40);
@@ -578,23 +632,127 @@ void start_game_definition (char* word_to_define, FILE* tree_data) {
 
     node_t* target = find_character (root, word_to_define);
     if (target == NULL) {
-        cool_print (MY_RED "Not found in base: " NO_COLOR, NORM_TEMP);
-        printf ("%s\n", word_to_define);
+        DrawText ("I don't know\n"
+                  "this word.....", 50, 378, 47, DARKGRAY);
     }
 
     else {
         int c = 0;
         char* path[64] = {};
-        char** buffer_with_character = get_character_buffer (target, word_to_define, &c, path);
+        get_character_buffer (target, word_to_define, &c, path);
 
         DrawText ("Definition", 100, 310, 40, DARKGRAY);
 
+        const int start_y     = 360;
+        const int line_height = 26;
+        const int max_y       = 800;
+        const int left_x      = 100;
+
+        int y = start_y;
+
+
         for (int i = c - 1; i >= 0; i--) {
-            DrawText (TextFormat (" - %s\n" , path[i]), 100, 490 - i * 23, 30, DARKGRAY);
+            if (y + line_height > max_y) {
+                DrawText ("...", left_x, y, 30, GRAY);
+                break;
+            }
+
+            DrawText (TextFormat (" - %s" , path[i]), left_x, y, 28, DARKGRAY);
+            y+= line_height;
+        }
+        
+        for (int i = 0; i < c; i++) {
             free (path[i]);
         }
     }
 
     free (buffer_for_def);
     destroy_tree (root);
+}
+
+void draw_comparison (const char* first_word, const char* second_word, mouse_t mouse, button_t* btn_ok2) {
+    assert (first_word  != NULL);
+    assert (second_word != NULL);
+    assert (btn_ok2     != NULL);
+
+    FILE* com_in = fopen ("data/tree_data.txt", "r");
+    if (com_in == NULL) return;
+
+    char* buffer_for_def = get_buffer_with_info_from_file (com_in);
+    if (buffer_for_def == NULL) { fclose (com_in); return; }
+
+    buffer_t buf = { .data = buffer_for_def, .position = 0 };
+    node_t* root = read_data_from_buffer (&buf);
+    if (root == NULL) {
+        free (buffer_for_def);
+        fclose (com_in);
+        return;
+    }
+
+    node_t* target_first  = find_character (root, first_word);
+    node_t* target_second = find_character (root, second_word);
+
+    if (target_first == NULL || target_second == NULL) {
+        DrawText ("I don't know one of these words...", 50, 380, 40, DARKGRAY);
+        destroy_tree (root);
+        free (buffer_for_def);
+        fclose (com_in);
+        return;
+    }
+
+    char* path_first[64]  = {};
+    char* path_second[64] = {};
+    int count_first = 0, count_second = 0;
+
+    get_character_buffer (target_first,  first_word,  &count_first,  path_first);
+    get_character_buffer (target_second, second_word, &count_second, path_second);
+
+    int i = count_first  - 1;
+    int j = count_second - 1;
+
+    while (i >= 0 && j >= 0 && strcmp (path_first[i], path_second[j]) == 0) {
+        i--; j--;
+    }
+
+    int y = 200;
+    DrawText ("Same characteristics:", 40, y, 30, DARKGRAY); y += 40;
+    if (i + 1 >= count_first) {
+        DrawText (" - nothing", 60, y, 25, GRAY); y += 30;
+    } else {
+        for (int k = i + 1; k < count_first && y < 700; k++) {
+            DrawText (TextFormat (" - %s", path_first[k]), 60, y, 25, BLACK);
+            y += 30;
+        }
+    }
+
+    y += 20;
+    DrawText (TextFormat ("Only %s:", first_word), 40, y, 30, DARKGRAY); y += 40;
+    if (i < 0) {
+        DrawText (" - nothing else", 60, y, 25, GRAY); y += 30;
+    } else {
+        for (int k = i; k >= 0 && y < 700; k--) {
+            DrawText (TextFormat (" - %s", path_first[k]), 60, y, 25, BLACK);
+            y += 30;
+        }
+    }
+
+    y += 20;
+    DrawText (TextFormat ("Only %s:", second_word), 40, y, 30, DARKGRAY); y += 40;
+    if (j < 0) {
+        DrawText (" - nothing else", 60, y, 25, GRAY); y += 30;
+    } else {
+        for (int k = j; k >= 0 && y < 700; k--) {
+            DrawText (TextFormat (" - %s", path_second[k]), 60, y, 25, BLACK);
+            y += 30;
+        }
+    }
+
+    for (int k = 0; k < count_first;  k++) free (path_first[k]);
+    for (int k = 0; k < count_second; k++) free (path_second[k]);
+
+    destroy_tree (root);
+    free (buffer_for_def);
+    fclose (com_in);
+
+    draw_button (btn_ok2, mouse.mouse_pos, mouse.is_down, 30);
 }

@@ -38,6 +38,8 @@ enum state_of_game_t {
     START_DEFINE,
     WRITE_DEFINITION,
     START_COMPARE,
+    WRITE_SECOND_WORD,
+    GET_COMPARISON,
     GUESS_CHECK,
     ASK_NEW_ITEM,
     WON,
@@ -61,5 +63,6 @@ node_t* make_leaf          (const char* text);
 void add_new_item          (tree_t* tree, node_t* current, const char* guess, const char* difference);
 void draw_guess_check      (node_t* current, button_t* btn_yes, button_t* btn_no, mouse_t mouse);
 void start_game_definition (char* word_to_define, FILE* tree_data);
+void draw_comparison (const char* first_word, const char* second_word, mouse_t mouse, button_t* btn_ok2);
 
 #endif

@@ -499,6 +499,7 @@ void get_definition (char* word_to_define, node_t** target, FILE* com_in) {
 
     buffer_t buf = { .data = buffer_for_def, .position = 0 };
     node_t* root = read_data_from_buffer (&buf);
+
     if (root == NULL) {
         free (buffer_for_def);
         return;
